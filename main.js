@@ -13,9 +13,6 @@ function main() {
     return;
   }
 
-  debugger;
-  loadDDS();
-
   // setup GLSL program
   var program = webglUtils.createProgramFromScripts(gl, ["vertex-shader-3d", "fragment-shader-3d"]);
 
@@ -33,9 +30,28 @@ function main() {
   // Put the positions in the buffer
   setGeometry(gl);
 
+  function radToDeg(r) {
+    return r * 180 / Math.PI;
+  }
+
+  function degToRad(d) {
+    return d * Math.PI / 180;
+  }
+
+  var fieldOfViewRadians = degToRad(60);
+  var modelXRotationRadians = degToRad(0);
+  var modelYRotationRadians = degToRad(0);
+
+  // Get the starting time.
+  var then = 0;
+
   // Create a texture.
   var texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+  loadDDS(texture, function () {
+    requestAnimationFrame(drawScene);
+  });
 
   // Get A 2D context
   /** @type {Canvas2DRenderingContext} */
@@ -44,7 +60,7 @@ function main() {
   ctx.canvas.width = 128;
   ctx.canvas.height = 128;
 
-  const faceInfos = [
+  /*const faceInfos = [
     { target: gl.TEXTURE_CUBE_MAP_POSITIVE_X, faceColor: '#F00', textColor: '#0FF', text: '+X' },
     { target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X, faceColor: '#FF0', textColor: '#00F', text: '-X' },
     { target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y, faceColor: '#0F0', textColor: '#F0F', text: '+Y' },
@@ -63,25 +79,11 @@ function main() {
     const type = gl.UNSIGNED_BYTE;
     gl.texImage2D(target, level, internalFormat, format, type, ctx.canvas);
   });
-  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 
-  function radToDeg(r) {
-    return r * 180 / Math.PI;
-  }
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);*/
 
-  function degToRad(d) {
-    return d * Math.PI / 180;
-  }
-
-  var fieldOfViewRadians = degToRad(60);
-  var modelXRotationRadians = degToRad(0);
-  var modelYRotationRadians = degToRad(0);
-
-  // Get the starting time.
-  var then = 0;
-
-  requestAnimationFrame(drawScene);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
   // Draw the scene.
   function drawScene(time) {
@@ -157,17 +159,16 @@ function main() {
     requestAnimationFrame(drawScene);
   }
 
-  function loadDDS(callback) {
+  function loadDDS(texture, callback) {
     var texture = gl.createTexture();
     var ddsXhr = new XMLHttpRequest();
 
     ddsXhr.open('GET', 'lena_dxt5.dds', true);
-    ddsXhr.responseType = "arraybuffer";
+    ddsXhr.responseType = 'arraybuffer';
     ddsXhr.onload = function() {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      var mipmaps = uploadDDSLevels(gl, this.response);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmaps > 1 ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+
+      // gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+     var mipmaps = uploadDDSLevels(gl, this.response);
 
       if(callback) { callback(texture); }
     };
@@ -274,13 +275,83 @@ function main() {
     height = header[off_height];
     dataOffset = header[off_size] + 4;
 
-    for(i = 0; i < mipmapCount; ++i) {
+   /* for(i = 0; i < mipmapCount; ++i) {
         dataLength = Math.max( 4, width )/4 * Math.max( 4, height )/4 * blockBytes;
         byteArray = new Uint8Array(arrayBuffer, dataOffset, dataLength);
         gl.compressedTexImage2D(gl.TEXTURE_2D, i, internalFormat, width, height, 0, byteArray);
         dataOffset += dataLength;
         width *= 0.5;
         height *= 0.5;
+    }*/
+
+    debugger;
+    dataLength = Math.max( 4, width )/4 * Math.max( 4, height )/4 * blockBytes;
+    byteArray = new Uint8Array(arrayBuffer, dataOffset, dataLength);
+
+    var faceColor = '#F00';
+    var textColor = '#0FF';
+    var text = '+X';
+    generateFace(ctx, faceColor, textColor, text);
+
+    // Upload the canvas to the cubemap face.
+    const level = 0;
+
+    /*const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    internalFormat = gl.RGBA;
+
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, level, internalFormat, format, type, ctx.canvas);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level, internalFormat, format, type, ctx.canvas);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level, internalFormat, format, type, ctx.canvas);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level, internalFormat, format, type, ctx.canvas);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level, internalFormat, format, type, ctx.canvas);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level, internalFormat, format, type, ctx.canvas);*/
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X, level,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    gl.compressedTexImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, i,
+      internalFormat,
+      width, height, // width, height of the image
+      0, // border, always 0
+      byteArray);
+
+    let errorCode = gl.getError();
+    if (errorCode !== 0) {
+      console.log('renderingError, WebGL Error Code: ' + errorCode);
     }
 
     return mipmapCount;
