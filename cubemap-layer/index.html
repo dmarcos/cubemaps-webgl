@@ -1,0 +1,242 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Multilayer Cubemap</title>
+  </head>
+  <body>
+    <header>
+      <details open>
+        <summary>Cubemap Example</summary>
+        <p>Simple cubemap layer example.</p>
+      </details>
+    </header>
+    <script type="module">
+      import {WebXRButton} from './webxr-button.js';
+
+      // XR globals.
+      let xrButton = null;
+      let xrGLFactory = null;
+      let xrFramebuffer = null;
+      let cube_map_image = null;
+
+      // WebGL scene globals.
+      let gl = null;
+      let cube_layer = null;
+      let cube_face_size = 0;
+
+      function createWebGLContext(glAttribs) {
+        glAttribs = glAttribs || {alpha: false};
+
+        let webglCanvas = document.createElement('canvas');
+        let contextTypes = glAttribs.webgl2 ? ['webgl2'] : ['webgl', 'experimental-webgl'];
+        let context = null;
+
+        for (let contextType of contextTypes) {
+          context = webglCanvas.getContext(contextType, glAttribs);
+          if (context) {
+            break;
+          }
+        }
+
+        if (!context) {
+          let webglType = (glAttribs.webgl2 ? 'WebGL 2' : 'WebGL');
+          console.error('This browser does not support ' + webglType + '.');
+          return null;
+        }
+
+        return context;
+      }
+
+      function initXR() {
+        xrButton = new WebXRButton({
+          onRequestSession: onRequestSession,
+          onEndSession: onEndSession
+        });
+        document.querySelector('header').appendChild(xrButton.domElement);
+
+        if (navigator.xr) {
+          navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+            xrButton.enabled = supported;
+          });
+          navigator.xr.requestSession('inline').then(onSessionStarted);
+        }
+      }
+
+      function initGL() {
+        if (gl)
+          return;
+
+        gl = createWebGLContext({
+          xrCompatible: true,
+          webgl2: true
+        });
+        document.body.appendChild(gl.canvas);
+
+        function onResize() {
+          gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
+          gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', onResize);
+        onResize();
+      }
+
+      function _getCubeTextureSize(imageElement) {
+        // We'll use the minimum of our system-imposed max cube map size and the
+        // size of an edge of a cube in our texture source image.
+        const glLimit = gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE);
+        const texSourceWidth = imageElement.width;
+        const texSourceHeight = imageElement.height;
+        return Math.min(glLimit, Math.min(texSourceWidth, texSourceHeight));
+      }
+
+      // This is a fairly expensive operation, since it involves slicing out
+      // pieces of the texure jpeg and potentially resizing them, but it only
+      // happens once on the initial render for a photo.
+      function copyCubestripToGLBuffer(tex, sourceImageElement, offset_in_faces) {
+
+        // our target cube face size.
+        const cubeFaceSize = _getCubeTextureSize(sourceImageElement);
+        cube_face_size = cubeFaceSize;
+        //this._updateMaxGPUMemUsed(cubeFaceSize);
+
+        // the input texture cube face size.
+        const textureSourceCubeFaceSize = Math.min(sourceImageElement.width, sourceImageElement.height);
+
+        // dont flip the pixels as we load them into the texture buffer.
+        // TEXTURE_CUBE_MAP expects the Y to be flipped for the faces and it already
+        // is flipped in our texture image.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+
+        let cubefaceTextures = [];
+
+        for (let i = 0; i < 6; i++) {
+          let tempCanvas = document.createElement("CANVAS");
+          tempCanvas.width = tempCanvas.height = cubeFaceSize;
+          const tempCanvasContext = tempCanvas.getContext('2d');
+          // Note that this call to drawImage will not only copy the bytes to the
+          // canvas but also could resized the image if our cube face size is
+          // smaller than the source image due to GL max texture size.
+          tempCanvasContext.drawImage(
+            sourceImageElement,
+            (i + offset_in_faces) * textureSourceCubeFaceSize, // top left x coord in source
+            0, // top left y coord in source
+            textureSourceCubeFaceSize, // x pixel count from source
+            textureSourceCubeFaceSize, // y pixel count from source
+            0, // dest x offset in the canvas
+            0, // dest y offset in the canvas
+            cubeFaceSize, // x pixel count in dest
+            cubeFaceSize, // y pixel count in dest
+          );
+          cubefaceTextures.push(tempCanvas);
+        }
+
+        let errorCode = 0;
+        cubefaceTextures.forEach((canvas, i) => {
+          gl.texSubImage2D(
+            gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+            0,
+            0, 0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            canvas,
+          );
+          errorCode = gl.getError();
+        });
+
+        if (errorCode !== 0) {
+          console.log("renderingError, WebGL Error Code: " + errorCode);
+        }
+
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+      }
+
+      function onRequestSession() {
+        return navigator.xr.requestSession('immersive-vr',{
+            requiredFeatures: ['layers']
+        }).then((session) => {
+          xrButton.setSession(session);
+          session.isImmersive = true;
+          onSessionStarted(session);
+        });
+      }
+
+      function onVisibilityChange(event) {
+        console.log("Visibility change for "
+          + (event.session.isImmersive? "immersive" : "non-immersive")
+          + " session: "
+          + event.session.visibilityState);
+      }
+
+      async function onSessionStarted(session) {
+        session.addEventListener('end', onSessionEnded);
+        session.addEventListener('visibilitychange', onVisibilityChange);
+
+        initGL();
+
+        if (session.isImmersive) {
+          cube_map_image = null;
+          let img2 = document.createElement('img'); // Use DOM HTMLImageElement
+          img2.src = '../mono_cube_map.png';
+          img2.onload = function() {
+            cube_face_size = _getCubeTextureSize(img2);
+            cube_map_image = img2;
+            onImageLoaded(session);
+          }
+        }
+      }
+
+      function onImageLoaded(session) {
+        xrFramebuffer = gl.createFramebuffer();
+        xrGLFactory = new XRWebGLBinding(session, gl);
+        session.requestReferenceSpace('local').then((refSpace) => {
+          cube_layer = xrGLFactory.createCubeLayer({
+            space: refSpace,
+            viewPixelWidth: cube_face_size,
+            viewPixelHeight: cube_face_size,
+            layout: "mono",
+            isStatic: true
+          });
+          session.updateRenderState({ layers: [ cube_layer ] });
+          session.requestAnimationFrame(onXRFrame);
+        });
+      }
+
+      function onEndSession(session) {
+        session.end();
+      }
+
+      function onSessionEnded(event) {
+        if (event.session.isImmersive) { xrButton.setSession(null); }
+      }
+
+      function onXRFrame(t, frame) {
+        let session = frame.session;
+        session.requestAnimationFrame(onXRFrame);
+
+        if (session.isImmersive) {
+          let glayer;
+
+          if (cube_layer.needsRedraw) {
+            if (cube_layer.layout == "mono") {
+              glayer = xrGLFactory.getSubImage(cube_layer, frame);
+              copyCubestripToGLBuffer(glayer.colorTexture, cube_map_image, 0);
+            } else if (cube_layer.layout == "stereo") {
+              let offset = 0;
+              eyes = ["left", "right"];
+              for (let eye of eyes) {
+                glayer = xrGLFactory.getSubImage(cube_layer, frame, eye);
+                copyCubestripToGLBuffer(glayer.colorTexture, cube_map_image, offset*6);
+                ++offset;
+              }
+            } else {
+              console.log("Invalid layout for cube");
+            }
+          }
+        }
+      }
+      initXR();
+    </script>
+  </body>
+</html>
