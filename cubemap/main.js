@@ -48,7 +48,7 @@ function main() {
   var texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
 
-  loadTexture('../bricks.png', function () {
+  loadTexture('../images/bricks.png', function () {
     requestAnimationFrame(drawScene);
   });
 
@@ -146,7 +146,7 @@ function main() {
 
       gl.texImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X, level,
-        internalFormat, internalFormat, gl.UNSIGNED_BYTE,img);
+        internalFormat, internalFormat, gl.UNSIGNED_BYTE, img);
 
       gl.texImage2D(
         gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level,
@@ -167,6 +167,30 @@ function main() {
       gl.texImage2D(
         gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level,
         internalFormat, internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_POSITIVE_X, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
+
+      // gl.texSubImage2D(
+      //   gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level, 0, 0,
+      //   internalFormat, gl.UNSIGNED_BYTE, img);
 
       let errorCode = gl.getError();
       if (errorCode !== 0) {

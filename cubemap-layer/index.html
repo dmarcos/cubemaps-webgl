@@ -11,7 +11,7 @@
       </details>
     </header>
     <script type="module">
-      import {WebXRButton} from './webxr-button.js';
+      import {WebXRButton} from './js/webxr-button.js';
 
       // XR globals.
       let xrButton = null;
@@ -92,16 +92,7 @@
       // This is a fairly expensive operation, since it involves slicing out
       // pieces of the texure jpeg and potentially resizing them, but it only
       // happens once on the initial render for a photo.
-      function copyCubestripToGLBuffer(tex, sourceImageElement, offset_in_faces) {
-
-        // our target cube face size.
-        const cubeFaceSize = _getCubeTextureSize(sourceImageElement);
-        cube_face_size = cubeFaceSize;
-        //this._updateMaxGPUMemUsed(cubeFaceSize);
-
-        // the input texture cube face size.
-        const textureSourceCubeFaceSize = Math.min(sourceImageElement.width, sourceImageElement.height);
-
+      function copyCubestripToGLBuffer(tex, src) {
         // dont flip the pixels as we load them into the texture buffer.
         // TEXTURE_CUBE_MAP expects the Y to be flipped for the faces and it already
         // is flipped in our texture image.
@@ -109,41 +100,63 @@
 
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
 
-        let cubefaceTextures = [];
-
-        for (let i = 0; i < 6; i++) {
-          let tempCanvas = document.createElement("CANVAS");
-          tempCanvas.width = tempCanvas.height = cubeFaceSize;
-          const tempCanvasContext = tempCanvas.getContext('2d');
-          // Note that this call to drawImage will not only copy the bytes to the
-          // canvas but also could resized the image if our cube face size is
-          // smaller than the source image due to GL max texture size.
-          tempCanvasContext.drawImage(
-            sourceImageElement,
-            (i + offset_in_faces) * textureSourceCubeFaceSize, // top left x coord in source
-            0, // top left y coord in source
-            textureSourceCubeFaceSize, // x pixel count from source
-            textureSourceCubeFaceSize, // y pixel count from source
-            0, // dest x offset in the canvas
-            0, // dest y offset in the canvas
-            cubeFaceSize, // x pixel count in dest
-            cubeFaceSize, // y pixel count in dest
-          );
-          cubefaceTextures.push(tempCanvas);
-        }
-
         let errorCode = 0;
-        cubefaceTextures.forEach((canvas, i) => {
-          gl.texSubImage2D(
-            gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-            0,
-            0, 0,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            canvas,
-          );
-          errorCode = gl.getError();
-        });
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        gl.texSubImage2D(
+          gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+          0,
+          0, 0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          src,
+        );
+
+        errorCode = gl.getError();
 
         if (errorCode !== 0) {
           console.log("renderingError, WebGL Error Code: " + errorCode);
@@ -178,7 +191,7 @@
         if (session.isImmersive) {
           cube_map_image = null;
           let img2 = document.createElement('img'); // Use DOM HTMLImageElement
-          img2.src = '../mono_cube_map.png';
+          img2.src = '../images/bricks.png';
           img2.onload = function() {
             cube_face_size = _getCubeTextureSize(img2);
             cube_map_image = img2;
@@ -193,12 +206,12 @@
         session.requestReferenceSpace('local').then((refSpace) => {
           cube_layer = xrGLFactory.createCubeLayer({
             space: refSpace,
-            viewPixelWidth: cube_face_size,
-            viewPixelHeight: cube_face_size,
+            viewPixelWidth: 512,
+            viewPixelHeight: 512,
             layout: "mono",
-            isStatic: true
+            isStatic: false
           });
-          session.updateRenderState({ layers: [ cube_layer ] });
+          session.updateRenderState({layers: [ cube_layer ]});
           session.requestAnimationFrame(onXRFrame);
         });
       }

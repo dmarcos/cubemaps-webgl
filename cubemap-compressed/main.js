@@ -57,7 +57,7 @@ function main() {
   ctx.canvas.width = 512;
   ctx.canvas.height = 512;
 
-  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  // gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 
   gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -139,13 +139,13 @@ function main() {
   function loadBasisTexture(src, callback) {
     var loader = new THREE.BasisTextureLoader();
     var self = this;
-    var extension = gl.getExtension('EXT_texture_compression_bptc');
-    loader.setTranscoderPath( './' );
+    var extension = window.XRWebGLBinding  !== undefined ? gl.getExtension('WEBGL_compressed_texture_astc') : gl.getExtension('EXT_texture_compression_bptc');
+
+    loader.setTranscoderPath( '../js/' );
     loader.detectSupport( gl );
-    loader.load('../bricks.basis', function ( evt ) {
-      debugger;
+    loader.load('../images/bricks.basis', function ( evt ) {
       var buffer = evt.mipmaps[0];
-      var internalFormat = extension.COMPRESSED_RGBA_BPTC_UNORM_EXT;
+      var internalFormat = window.XRWebGLBinding !== undefined ? extension.COMPRESSED_RGBA_ASTC_4x4_KHR : extension.COMPRESSED_RGBA_BPTC_UNORM_EXT;
       var width = buffer.width;
       var height = buffer.height;
       const level = 0;
@@ -191,6 +191,60 @@ function main() {
         width, height, // width, height of the image
         0, // border, always 0
         buffer.data);
+
+      // gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
+
+      //  gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
+
+      //  gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
+
+      //  gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
+
+      //  gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
+
+      //  gl.compressedTexSubImage2D(
+      //    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      //    0,
+      //    0, 0,
+      //    buffer.width, buffer.height,
+      //    internalFormat,
+      //    buffer.data
+      //  );
 
       let errorCode = gl.getError();
       if (errorCode !== 0) {
