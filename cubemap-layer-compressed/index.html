@@ -99,7 +99,7 @@
       // This is a fairly expensive operation, since it involves slicing out
       // pieces of the texure jpeg and potentially resizing them, but it only
       // happens once on the initial render for a photo.
-      function copyCubestripToGLBuffer(tex) {
+      function copyTextureToCubemapLayer(texture) {
         var buffer = textureBuffer;
         //var internalFormat = extension.COMPRESSED_RGBA_BPTC_UNORM_EXT;
         var internalFormat = extension.COMPRESSED_RGBA_ASTC_4x4_KHR;
@@ -111,7 +111,7 @@
         // is flipped in our texture image.
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
 
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
         let errorCode = 0;
 
         gl.compressedTexImage2D(
@@ -241,13 +241,13 @@
           if (cube_layer.needsRedraw) {
             if (cube_layer.layout == "mono") {
               glayer = xrGLFactory.getSubImage(cube_layer, frame);
-              copyCubestripToGLBuffer(glayer.colorTexture);
+              copyTextureToCubemapLayer(glayer.colorTexture);
             } else if (cube_layer.layout == "stereo") {
               let offset = 0;
               eyes = ["left", "right"];
               for (let eye of eyes) {
                 glayer = xrGLFactory.getSubImage(cube_layer, frame, eye);
-                copyCubestripToGLBuffer(glayer.colorTexture);
+                copyTextureToCubemapLayer(glayer.colorTexture);
                 ++offset;
               }
             } else {
