@@ -117,47 +117,101 @@
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
         let errorCode = 0;
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_POSITIVE_X, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_POSITIVE_X, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
 
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level,
-          internalFormat,
-          width, height, // width, height of the image
-          0, // border, always 0
-          buffer.data);
+        // gl.compressedTexImage2D(
+        //   gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level,
+        //   internalFormat,
+        //   width, height, // width, height of the image
+        //   0, // border, always 0
+        //   buffer.data);
+
+        gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
+
+         gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
+
+         gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
+
+         gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
+
+         gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
+
+         gl.compressedTexSubImage2D(
+           gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+           0,
+           0, 0,
+           buffer.width, buffer.height,
+           internalFormat,
+           buffer.data
+         );
 
         errorCode = gl.getError();
 
@@ -193,6 +247,7 @@
       }
 
       function onImageLoaded(session) {
+        extension = gl.getExtension('WEBGL_compressed_texture_astc');
         xrFramebuffer = gl.createFramebuffer();
         xrGLFactory = new XRWebGLBinding(session, gl);
         session.requestReferenceSpace('local').then((refSpace) => {
@@ -201,7 +256,8 @@
             viewPixelWidth: 512,
             viewPixelHeight: 512,
             layout: "mono",
-            isStatic: false
+            isStatic: false,
+            colorFormat: extension.COMPRESSED_RGBA_ASTC_4x4_KHR
           });
           session.updateRenderState({layers: [cube_layer]});
 
